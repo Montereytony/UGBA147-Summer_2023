@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 DRY_RUN=0  # change to 1 to just print the changes
+mkdir /usr/local/share/jupyter
+chown jovyan /usr/local/share/jupyter
 SITE_PACKAGES_DIR=$(python -c 'import site; print(site.getsitepackages()[0])')
 
 patch-template-paths-with-backup() {

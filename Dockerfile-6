@@ -1,0 +1,12 @@
+#
+# Start with minimal image
+#
+FROM montereytony/ugba147:summer-2023-tree1-nb6
+RUN mamba install -y r-webshot2 r-imager  r-rgl  && \
+    Rscript -e 'remotes::install_github("ShotaOchi/imagerExtra")'
+RUN jupyter contrib nbextension install --user &&\
+    jupyter nbextension install --py widgetsnbextension --sys-prefix && \
+    jupyter nbextension enable  --py widgetsnbextension --sys-prefix && \
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH
+
+USER ${NB_UID}

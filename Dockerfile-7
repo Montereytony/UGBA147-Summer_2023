@@ -1,12 +1,12 @@
 #
-# Take ownership of the mess that follows
+# Start with minimal image
 #
 ARG BASE_CONTAINER=jupyter/minimal-notebook
 FROM $BASE_CONTAINER
+#
+# Take ownership of the mess to follow
+#
 ARG OWNER=montereytony@gmail.com
-
-#Let's define this parameter to Not install jupyter lab instead of the default juyter notebook command so we don't have to use it when running the container with the option -e
-ENV JUPYTER_ENABLE_LAB=no
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 USER root
@@ -44,7 +44,6 @@ RUN apt update && sudo apt -y  dist-upgrade && \
     zlib1g-dev zlib1g \
     r-cran-rgl \
     freeglut3-dev \
-    libgl1-mesa-dev libglu1-mesa-dev \
     libglu1-mesa-dev freeglut3-dev mesa-common-dev \
     fonts-symbola \
     --no-install-recommends \
@@ -91,8 +90,7 @@ RUN conda update -n base -c defaults conda && \
     'gcc_linux-64' \
     'gfortran_linux-64' \
     'r-essentials' \
-    'r-htmlwidgets' 
-RUN    mamba install --yes \
+    'r-htmlwidgets' \
     'r-gridExtra' \
     'r-e1071' \
     'r-rgl' \
@@ -130,7 +128,7 @@ RUN    mamba install --yes \
     'r-kableExtra' \
     'r-kknn' \
     'r-ks' \
-    'r-knitr'  \
+    'r-knitr' \
     'r-lubridate' \
     'r-MASS' \
     'r-mclust' \
@@ -154,56 +152,47 @@ RUN    mamba install --yes \
     'r-writexl'  \
     'numpy'\
     'statsmodels' \
-    'r-webshot2' 
+    'r-webshot2' \
+    'r-imager' \
+    'r-rgl' \
+    'unixodbc' 
 
+RUN mamba install -c conda-forge r-webshot  uwsgi jupyter_contrib_nbextensions 
+RUN mamba install -c r r-simmer r-remotes r-stringi  nbgrader nbgitpuller r-ggnewscale
+RUN Rscript -e 'remotes::install_github("ShotaOchi/imagerExtra")' && \
+    Rscript -e 'remotes::install_github("r-simmer/simmer.plot")'
 USER root
-
-RUN apt-get update &&  apt-get -y install fftw-dev && apt-get -y install r-cran-fftw 
-RUN apt-get  -y install libsndfile1-dev libfftw3-dev libsndfile1
-
-#RUN mamba install --yes -c conda-forge fftwtools
-RUN mamba install --yes    'r-imager' 
-RUN mamba install --yes    'unixodbc' 
-
-RUN mamba install --yes -c conda-forge r-webshot  uwsgi nbclassic && \
-    mamba install --yes -c r r-simmer r-remotes r-stringi  nbgitpuller r-ggnewscale \
-                       r-rglwidget r-sigmoid r-imager && \
-    Rscript -e 'remotes::install_github("ShotaOchi/imagerExtra")' && \
-    Rscript -e 'remotes::install_github("r-simmer/simmer.plot")' && \
-    Rscript -e 'devtools::install_github("ShotaOchi/imagerExtra")' && \
-    Rscript -e 'remotes::install_github("dmurdoch/rgl") '
-
-RUN mamba clean --all -f -y 
-USER root
-RUN fix-permissions "${CONDA_DIR}"  &&\
-    fix-permissions /home/jovyan
+COPY custom.css          /tmp
+COPY common.json         /tmp
+COPY tree.json           /tmp
+COPY notebook.json       /tmp
+COPY common.json         /tmp
+COPY tree.json           /tmp
+COPY notebook.json       /tmp
+COPY add_files.sh        /tmp
+COPY fixer.sh /tmp
+COPY fix-permissions /tmp
+RUN mamba clean --all -f -y && \
+    bash /tmp/fixer.sh && \
+    chmod -R 775 "${CONDA_DIR}" && \
+    chown -R ${NB_USER} "${CONDA_DIR}" && \
+    chown -R ${NB_USER} "/home/${NB_USER}" &&\
+    bash /tmp/add_files.sh  &&\
+    bash /tmp/fix-permissions  
 USER ${NB_UID}
-#
-# The below is a mess, I kept adding lines to get the nbextensions to work.
-# turned out I had to go back to a version 6 notebook.
-#
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH && mkdir -p /home/jovyan/.local  /home/jovyan/.local/share  /home/jovyan/.local/share/jupyter/ /home/jovyan/.local/share/jupyter/nbextensions/\
-    pip install notebook==6.5.2 retrolab  && \
-    pip install jupyter_contrib_nbextensions && \
-    jupyter contrib nbextension install --user && \
-    jupyter nbextension enable varInspector/main --user &&\
-    jupyter nbextension enable spellchecker/main --user && \
-    jupyter nbextension enable toc2/main --user && \
-    jupyter nbextension enable hide_input/main --user && \
+RUN jupyter labextension install @jupyterlab/hub-extension && \
+    jupyter nbextensions_configurator enable --sys-prefix  && \
+    jupyter labextension enable --level=system nbgrader   && \
+    jupyter server extension enable --system --py nbgrader && \
+    jupyter nbextension install --py widgetsnbextension --sys-prefix && \
+    jupyter nbextension enable  --py widgetsnbextension --sys-prefix && \
+    jupyter-nbextension install rise --py --sys-prefix  && \
+    jupyter-nbextension enable  rise --py --sys-prefix
     jupyter contrib nbextension install --user &&\
-    jupyter nbextensions_configurator enable --user
-
-RUN pip install jupyter_nbextensions_configurator  && \
-    jupyter nbextension install --sys-prefix --py jupyter_nbextensions_configurator --overwrite  && \
-    jupyter nbextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter serverextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter contrib nbextensions install --user
-
-#
-# I am not sure which path is used so I copied my custom.css to the three locations I saw. I put in .jupyter and .jupyter/custom
-# in /home/jovuan, nut that did not seem to work.
-#
-COPY custom.css /opt/conda/lib/python3.10/site-packages/jupyter_core/tests/dotipython/profile_default/static/custom/custom.css
-COPY custom.css /opt/conda/lib/python3.10/site-packages/jupyter_core/tests/dotipython_empty/profile_default/static/custom/custom.css
-COPY custom.css /opt/conda/lib/python3.10/site-packages/nbclassic/static/custom/custom.css
-
+    jupyter nbextension install --py widgetsnbextension --sys-prefix && \
+    jupyter nbextension enable  --py widgetsnbextension --sys-prefix && \
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH
+RUN pip install jupyterthemes  && \
+    pip install --upgrade jupyterthemes  && \
+    pip install jupyter_contrib_nbextensions  && \
+    pip install RISE  && \

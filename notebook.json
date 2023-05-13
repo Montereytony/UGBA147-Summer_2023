@@ -1,0 +1,32 @@
+{
+  "load_extensions": {
+    "nbextensions_configurator/config_menu/main": true,
+    "contrib_nbextensions_help_item/main": true,
+    "hide_input/main": true,
+    "hide_input_all/main": false,
+    "move_selected_cells/main": false,
+    "export_embedded/main": true,
+    "hide_header/main": true,
+    "printview/main": false,
+    "toc2/main": true,
+    "collapsible_headings/main": false,
+    "help_panel/help_panel": true,
+    "table_beautifier/main": false,
+    "zenmode/main": false,
+    "toggle_all_line_numbers/main": true,
+    "load_tex_macros/main": false
+  },
+  "Cell": {
+    "cm_config": {
+      "lineNumbers": true
+    }
+  },
+  "toc2": {
+    "toc_cell": false,
+    "toc_window_display": true,
+    "collapse_to_match_collapsible_headings": false,
+    "skip_h1_title": true,
+    "threshold": "5",
+    "number_sections": false
+  }
+}

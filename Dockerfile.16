@@ -1,0 +1,33 @@
+#
+# Start with minimal image
+#
+ARG BASE_CONTAINER=montereytony/ugba147:summer-2023-tree1-nb15
+FROM $BASE_CONTAINER
+#
+# Take ownership of the mess to follow
+#
+ARG OWNER=montereytony@gmail.com
+USER root
+RUN mamba install -c conda-forge jupyter_contrib_nbextensions nbclassic
+USER ${NB_UID}
+#RUN pip install notebook==6.1.5  &&\
+RUN pip install notebook==5.6.0 && \
+    pip uninstall jupyter lab &&\
+       pip install nbclassic && \
+       pip install jupyter_contrib_nbextensions  &&\
+	pip install jupyter_nbextensions_configurator  &&\
+	jupyter contrib nbextension install --user   &&\
+	jupyter nbextensions_configurator enable --user && \
+        jupyter nbextension enable varInspector/main && \
+        jupyter nbextension enable spellchecker/main  && \
+        jupyter nbextension enable codefolding/main &&\
+	jupyter nbextension enable toc2/main &&\
+	jupyter nbextension enable execute_time/ExecuteTime &&\
+	jupyter nbextension enable hide_input/main &&\
+	jupyter nbextension enable splitcell/splitcell &&\
+	jupyter nbextension enable code_prettify/code_prettify 
+USER root
+#RUN Rscript -e 'remotes::install_github("ShotaOchi/imagerExtra")'
+RUN Rscript -e 'devtools::install_github("ShotaOchi/imagerExtra")'
+
+USER ${NB_UID}

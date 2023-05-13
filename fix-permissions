@@ -17,6 +17,9 @@
 
 set -e
 
+mkdir /usr/local/share/jupyter
+chown  "${NB_GID}" /usr/local/share/jupyter
+
 for d in "$@"; do
     find "${d}" \
         ! \( \
@@ -33,3 +36,4 @@ for d in "$@"; do
         \) \
         -exec chmod +6000 {} \;
 done
+
