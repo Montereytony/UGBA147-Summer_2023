@@ -185,19 +185,17 @@ USER ${NB_UID}
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH && mkdir -p /home/jovyan/.local  /home/jovyan/.local/share  /home/jovyan/.local/share/jupyter/ /home/jovyan/.local/share/jupyter/nbextensions/\
     pip install notebook==6.5.2 retrolab  && \
     pip install jupyter_contrib_nbextensions && \
+    pip install jupyter_nbextensions_configurator &&\
     jupyter contrib nbextension install --user && \
+    jupyter nbextension install --sys-prefix --py jupyter_nbextensions_configurator --overwrite  && \
+    jupyter nbextension enable  --sys-prefix --py jupyter_nbextensions_configurator  && \
+    jupyter serverextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
     jupyter nbextension enable varInspector/main --user &&\
     jupyter nbextension enable spellchecker/main --user && \
     jupyter nbextension enable toc2/main --user && \
     jupyter nbextension enable hide_input/main --user && \
-    jupyter contrib nbextension install --user &&\
     jupyter nbextensions_configurator enable --user
 
-RUN pip install jupyter_nbextensions_configurator  && \
-    jupyter nbextension install --sys-prefix --py jupyter_nbextensions_configurator --overwrite  && \
-    jupyter nbextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter serverextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter contrib nbextensions install --user
 
 #
 # I am not sure which path is used so I copied my custom.css to the three locations I saw. I put in .jupyter and .jupyter/custom
