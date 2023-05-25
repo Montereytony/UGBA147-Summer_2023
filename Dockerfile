@@ -18,9 +18,11 @@ RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen &&\
 	/usr/sbin/update-locale  LANG=en_US.UTF-8
 
 
-RUN apt update && sudo apt -y  dist-upgrade && \
+RUN apt-get update --yes && sudo apt-get -y  dist-upgrade && \
     apt-get update --yes && \
     apt-get install --yes --no-install-recommends \
+    fftw-dev \
+    r-cran-fftw  libsndfile1-dev libfftw3-dev libsndfile1 \
     software-properties-common \
     build-essential \
     fonts-dejavu \
@@ -59,15 +61,11 @@ RUN apt update && sudo apt -y  dist-upgrade && \
     apt-get purge --auto-remove -y curl && \
     rm -rf /var/lib/apt/lists/*
 
-
 USER ${NB_UID}
 
-#
 # Prof Huntsinger asked for R 4.2.2
-#
 ENV R_BASE_VERSION 4.2.2
-
-RUN conda update -n base -c defaults conda && \
+RUN pip install notebook==5.7.10 retrolab && \
     mamba install --yes \
     r-base=${R_BASE_VERSION} \
     'r-caret' \
@@ -91,8 +89,7 @@ RUN conda update -n base -c defaults conda && \
     'gcc_linux-64' \
     'gfortran_linux-64' \
     'r-essentials' \
-    'r-htmlwidgets' 
-RUN    mamba install --yes \
+    'r-htmlwidgets'  \
     'r-gridExtra' \
     'r-e1071' \
     'r-rgl' \
@@ -124,7 +121,7 @@ RUN    mamba install --yes \
     'r-gtools' \
     'r-ggwordcloud' \
     'r-gridExtra' \
-    'r-htmltools' \
+    'r-htmltools'  \
     'r-igraph' \
     'r-IRdisplay' \
     'r-kableExtra' \
@@ -154,54 +151,48 @@ RUN    mamba install --yes \
     'r-writexl'  \
     'numpy'\
     'statsmodels' \
-    'r-webshot2' 
+    'r-webshot2'
 
-USER root
-
-RUN apt-get update &&  apt-get -y install fftw-dev && apt-get -y install r-cran-fftw 
-RUN apt-get  -y install libsndfile1-dev libfftw3-dev libsndfile1
-
-#RUN mamba install --yes -c conda-forge fftwtools
-RUN mamba install --yes    'r-imager' 
-RUN mamba install --yes    'unixodbc' 
 
 RUN mamba install --yes -c conda-forge r-webshot  uwsgi nbclassic && \
-    mamba install --yes -c r r-simmer r-remotes r-stringi  nbgitpuller r-ggnewscale \
+    mamba install --yes -c r r-simmer r-remotes r-stringi  nbgitpuller r-ggnewscale r-leaflet \
                        r-rglwidget r-sigmoid r-imager && \
     Rscript -e 'remotes::install_github("ShotaOchi/imagerExtra")' && \
     Rscript -e 'remotes::install_github("r-simmer/simmer.plot")' && \
     Rscript -e 'devtools::install_github("ShotaOchi/imagerExtra")' && \
-    Rscript -e 'remotes::install_github("dmurdoch/rgl") '
+    Rscript -e 'remotes::install_github("dmurdoch/rgl")' &&\
+    mamba clean --all -f -y
 
-RUN mamba clean --all -f -y 
 USER root
 RUN fix-permissions "${CONDA_DIR}"  &&\
     fix-permissions /home/jovyan
 USER ${NB_UID}
 #
+#
 # The below is a mess, I kept adding lines to get the nbextensions to work.
 # turned out I had to go back to a version 6 notebook.
-#
-RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH && mkdir -p /home/jovyan/.local  /home/jovyan/.local/share  /home/jovyan/.local/share/jupyter/ /home/jovyan/.local/share/jupyter/nbextensions/\
-    pip install notebook==6.5.2 retrolab  && \
-    pip install jupyter_contrib_nbextensions && \
-    pip install jupyter_nbextensions_configurator &&\
-    jupyter contrib nbextension install --user && \
-    jupyter nbextension install --sys-prefix --py jupyter_nbextensions_configurator --overwrite  && \
-    jupyter nbextension enable  --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter serverextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
-    jupyter nbextension enable varInspector/main --user &&\
-    jupyter nbextension enable spellchecker/main --user && \
-    jupyter nbextension enable toc2/main --user && \
-    jupyter nbextension enable hide_input/main --user && \
-    jupyter nbextensions_configurator enable --user
-
-
-#
-# I am not sure which path is used so I copied my custom.css to the three locations I saw. I put in .jupyter and .jupyter/custom
-# in /home/jovuan, nut that did not seem to work.
 #
 COPY custom.css /opt/conda/lib/python3.10/site-packages/jupyter_core/tests/dotipython/profile_default/static/custom/custom.css
 COPY custom.css /opt/conda/lib/python3.10/site-packages/jupyter_core/tests/dotipython_empty/profile_default/static/custom/custom.css
 COPY custom.css /opt/conda/lib/python3.10/site-packages/nbclassic/static/custom/custom.css
 
+RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$JAVA_LD_LIBRARY_PATH && \
+    mkdir -p /home/jovyan/.local  /home/jovyan/.local/share \
+    /home/jovyan/.local/share/jupyter/ /home/jovyan/.local/share/jupyter/nbextensions/ && \
+    pip install jupyter_contrib_nbextensions && \
+    pip install jupyter_nbextensions_configurator &&\
+    jupyter nbextensions_configurator enable --user &&\
+    jupyter contrib nbextension install --user && \
+    jupyter nbextension install --sys-prefix --py jupyter_nbextensions_configurator --overwrite  && \
+    jupyter nbextension enable  --sys-prefix --py jupyter_nbextensions_configurator  && \
+    jupyter serverextension enable --sys-prefix --py jupyter_nbextensions_configurator  && \
+    jupyter nbextension enable spellchecker/main &&\
+    jupyter nbextension enable codefolding/main &&\
+    jupyter nbextension enable varInspector/main &&\
+    jupyter nbextension enable toc2/main &&\
+    jupyter nbextension enable execute_time/ExecuteTime &&\
+    jupyter nbextension enable hide_input/main &&\
+    jupyter nbextension enable splitcell/splitcell &&\
+    jupyter nbextension enable code_prettify/code_prettify
+
+COPY fixer.sh /tmp
